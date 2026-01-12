@@ -1,14 +1,14 @@
 # 本项目是使用 Hardhat 框架开发一个 NFT 拍卖市场。
 ## 目录结构
 -contracts  # 合约目录  
- -ntf   # NFT 合约目录  
-  -CookNTF.sol  # 使用 ERC721 标准实现一个 NFT 合约，支持 NFT 的铸造和转移。  
- -pricefeed # 预言机目录  
-  -MockCookTokenV3Aggregator.sol    # 基于 Chainlink 实现的自定义预言机，用以返回 自定义 ERC20代币的价格。  
-  -PriceConsumerV3.sol  # feedData 预言机集合，可以注册多个代币的预言机。  
- -token # ERC20代币目录  
-  -CookToken.sol    # 基于 ERC20代币 实现的代币  
- -CookNFTMarketplace.sol    # NFT 拍卖市场，使用基于 openzeppelin 的透明代理模式实现合约升级。  
+--ntf   # NFT 合约目录  
+---CookNTF.sol  # 使用 ERC721 标准实现一个 NFT 合约，支持 NFT 的铸造和转移。  
+--pricefeed # 预言机目录  
+---MockCookTokenV3Aggregator.sol    # 基于 Chainlink 实现的自定义预言机，用以返回 自定义 ERC20代币的价格。  
+---PriceConsumerV3.sol  # feedData 预言机集合，可以注册多个代币的预言机。  
+--token # ERC20代币目录  
+---CookToken.sol    # 基于 ERC20代币 实现的代币  
+--CookNFTMarketplace.sol    # NFT 拍卖市场，使用基于 openzeppelin 的透明代理模式实现合约升级。  
 -ignition   # 使用 ignition 部署脚本  
 -test   # 测试脚本  
 
