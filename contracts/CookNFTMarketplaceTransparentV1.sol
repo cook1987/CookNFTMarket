@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 import "./pricefeed/PriceConsumerV3.sol";
 
 /**
@@ -29,21 +30,10 @@ interface IERC2981 is IERC165 {
  * @dev 完整的NFT交易市场合约，支持上架、购买、版税和拍卖功能
  * @notice 使用ReentrancyGuard防止重入攻击
  */
-contract CookNFTMarketplaceTransparentV1 is ReentrancyGuard,Initializable, OwnableUpgradeable {
+contract CookNFTMarketplaceTransparentV1 is ReentrancyGuard,Initializable, UUPSUpgradeable, OwnableUpgradeable {
     using Math for uint256;
 
     PriceConsumerV3 public priceConsumer;
-    
-    /**
-     * @dev 挂单结构体
-     */
-    struct Listing {
-        address seller;        // 卖家地址
-        address nftContract;    // NFT合约地址
-        uint256 tokenId;         // Token ID
-        uint256 price;          // 售价（wei）
-        bool active;            // 是否激活
-    }
     
     /**
      * @dev 拍卖结构体
@@ -61,10 +51,6 @@ contract CookNFTMarketplaceTransparentV1 is ReentrancyGuard,Initializable, Ownab
         bool active;              // 是否激活
     }
     
-    // 挂单映射
-    mapping(uint256 => Listing) public listings;
-    uint256 public listingCounter;
-    
     // 拍卖映射
     mapping(uint256 => Auction) public auctions;
     uint256 public auctionCounter;
@@ -79,43 +65,6 @@ contract CookNFTMarketplaceTransparentV1 is ReentrancyGuard,Initializable, Ownab
     
     // 手续费接收地址
     address public feeRecipient;
-    
-    /**
-     * @dev NFT上架事件
-     */
-    event NFTListed(
-        uint256 indexed listingId,
-        address indexed seller,
-        address indexed nftContract,
-        uint256 tokenId,
-        uint256 price
-    );
-    
-    /**
-     * @dev NFT下架事件
-     */
-    event NFTDelisted(
-        uint256 indexed listingId
-    );
-    
-    /**
-     * @dev 价格更新事件
-     */
-    event PriceUpdated(
-        uint256 indexed listingId,
-        uint256 newPrice
-    );
-    
-    /**
-     * @dev NFT售出事件
-     */
-    event NFTSold(
-        uint256 indexed listingId,
-        address indexed buyer,
-        address indexed seller,
-        address erc20Token,
-        uint256 price
-    );
     
     /**
      * @dev 拍卖创建事件
@@ -166,194 +115,14 @@ contract CookNFTMarketplaceTransparentV1 is ReentrancyGuard,Initializable, Ownab
         feeRecipient = _feeRecipient;
         priceConsumer = PriceConsumerV3(_priceConsumer);
     }
-    
-    /**
-     * @dev 上架NFT
-     * @param nftContract NFT合约地址
-     * @param tokenId Token ID
-     * @param price 售价（wei 美元）
-     * @return listingId 挂单ID
-     */
-    function listNFT(
-        address nftContract,
-        uint256 tokenId,
-        uint256 price
-    ) external returns (uint256) {
-        require(price > 0, "Price must be greater than 0");
-        require(nftContract != address(0), "Invalid NFT contract");
-        
-        IERC721 nft = IERC721(nftContract);
-        
-        // 验证所有权
-        require(nft.ownerOf(tokenId) == msg.sender, "Not the owner");
-        
-        // 验证授权
-        require(
-            nft.getApproved(tokenId) == address(this) ||
-            nft.isApprovedForAll(msg.sender, address(this)),
-            "Marketplace not approved"
-        );
-        
-        // 创建挂单
-        listingCounter++;
-        listings[listingCounter] = Listing({
-            seller: msg.sender,
-            nftContract: nftContract,
-            tokenId: tokenId,
-            price: price,
-            active: true
-        });
-        
-        emit NFTListed(
-            listingCounter,
-            msg.sender,
-            nftContract,
-            tokenId,
-            price
-        );
-        
-        return listingCounter;
-    }
-    
-    /**
-     * @dev 下架NFT
-     * @param listingId 挂单ID
-     */
-    function delistNFT(uint256 listingId) external {
-        Listing storage listing = listings[listingId];
-        
-        require(listing.active, "Listing not active");
-        require(listing.seller == msg.sender, "Not the seller");
-        
-        listing.active = false;
-        
-        emit NFTDelisted(listingId);
-    }
-    
-    /**
-     * @dev 更新挂单价格
-     * @param listingId 挂单ID
-     * @param newPrice 新价格（wei）
-     */
-    function updatePrice(uint256 listingId, uint256 newPrice) external {
-        require(newPrice > 0, "Price must be greater than 0");
-        
-        Listing storage listing = listings[listingId];
-        require(listing.active, "Listing not active");
-        require(listing.seller == msg.sender, "Not the seller");
-        
-        listing.price = newPrice;
-        
-        emit PriceUpdated(listingId, newPrice);
-    }
-    
-    /**
-     * @dev 购买NFT
-     * @param listingId 挂单ID
-     * @param erc20Token 如果使用代币购买，需要输入代币合约的地址
-     * @param amount 如果使用代币购买，需要输入代币数量
-     * @notice 需要支付足够的ETH，多余部分会自动退还
-     */
-    function buyNFT(uint256 listingId, address erc20Token, uint256 amount) external payable nonReentrant returns(bool) {
-        Listing storage listing = listings[listingId];
-        
-        // 检查挂单状态
-        require(listing.active, "Listing not active");
-        require(msg.sender != listing.seller, "Cannot buy your own NFT");
-        if(erc20Token != address(0) && amount > 0){
-            // 使用代币
-            ERC20 token = ERC20(erc20Token);
-            uint price = getTokenPrice(token, amount);
-            // 检查数据是否存在且有效
-            uint needAmount = listing.price.ceilDiv(price);
-            require(amount >= needAmount, "Insufficient payment");
 
-             // 先更新状态（CEI原则）
-            listing.active = false;
-            
-            // 计算手续费
-            uint256 fee = ((listing.price * platformFee) / 10000).ceilDiv(price);
-            
-            // 获取版税信息
-            (address royaltyReceiver, uint256 royaltyAmount) = _getRoyaltyInfo(
-                listing.nftContract,
-                listing.tokenId,
-                listing.price
-            );
-            royaltyAmount = royaltyAmount.ceilDiv(price);
-            // 计算卖家收益
-            uint256 sellerAmount = needAmount - fee - royaltyAmount;
-            
-            // 转移NFT
-            IERC721(listing.nftContract).safeTransferFrom(
-                listing.seller,
-                msg.sender,
-                listing.tokenId
-            );
-            
-            // 资金分配：版税 -> 平台手续费 -> 卖家收益
-            if (royaltyAmount > 0 && royaltyReceiver != address(0)) {
-                 token.transferFrom(msg.sender, royaltyReceiver, royaltyAmount);
-            }
-            token.transferFrom(msg.sender, listing.seller, sellerAmount);
-            token.transferFrom(msg.sender, feeRecipient, fee);
-        }else{
-            // 使用 ETH
-            uint price = uint(priceConsumer.getLatestPrice(address(0)));
-            // 检查数据是否存在且有效
-            require(price > 0, "Chainlink: price <= 0");
-            uint needAmount = listing.price.ceilDiv(price);
-            require(msg.value >= needAmount, "Insufficient payment");
-
-             // 先更新状态（CEI原则）
-            listing.active = false;
-            
-            // 计算手续费
-            uint256 fee = ((listing.price * platformFee) / 10000).ceilDiv(price);
-            
-            // 获取版税信息
-            (address royaltyReceiver, uint256 royaltyAmount) = _getRoyaltyInfo(
-                listing.nftContract,
-                listing.tokenId,
-                listing.price
-            );
-            royaltyAmount = royaltyAmount.ceilDiv(price);
-            
-            // 计算卖家收益
-            uint256 sellerAmount = needAmount - fee - royaltyAmount;
-            
-            // 转移NFT
-            IERC721(listing.nftContract).safeTransferFrom(
-                listing.seller,
-                msg.sender,
-                listing.tokenId
-            );
-            
-            // 资金分配：版税 -> 平台手续费 -> 卖家收益
-            if (royaltyAmount > 0 && royaltyReceiver != address(0)) {
-                (bool successRoyalty, ) = royaltyReceiver.call{value: royaltyAmount}("");
-                require(successRoyalty, "Royalty transfer failed");
-            }
-            
-            (bool successSeller, ) = listing.seller.call{value: sellerAmount}("");
-            require(successSeller, "Transfer to seller failed");
-            
-            (bool successFee, ) = feeRecipient.call{value: fee}("");
-            require(successFee, "Transfer fee failed");
-            
-            // 退还多余资金
-            if (msg.value > listing.price) {
-                (bool successRefund, ) = msg.sender.call{
-                    value: msg.value - needAmount
-                }("");
-                require(successRefund, "Refund failed");
-            }
-        }
-        
-        emit NFTSold(listingId, msg.sender, listing.seller, erc20Token, listing.price);
-
-        return true;
-    }
+        // 必须实现的升级权限控制
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        override
+        onlyOwner
+    {}
+    
     
     function getTokenPrice(ERC20 token, uint256 amount)internal view returns(uint256) {
          // 使用代币
@@ -624,32 +393,6 @@ contract CookNFTMarketplaceTransparentV1 is ReentrancyGuard,Initializable, Ownab
             receiver = address(0);
             royaltyAmount = 0;
         }
-    }
-    
-    /**
-     * @dev 查询挂单信息
-     * @param listingId 挂单ID
-     * @return seller 卖家地址
-     * @return nftContract NFT合约地址
-     * @return tokenId Token ID
-     * @return price 价格
-     * @return active 是否激活
-     */
-    function getListing(uint256 listingId) external view returns (
-        address seller,
-        address nftContract,
-        uint256 tokenId,
-        uint256 price,
-        bool active
-    ) {
-        Listing memory listing = listings[listingId];
-        return (
-            listing.seller,
-            listing.nftContract,
-            listing.tokenId,
-            listing.price,
-            listing.active
-        );
     }
     
     /**
