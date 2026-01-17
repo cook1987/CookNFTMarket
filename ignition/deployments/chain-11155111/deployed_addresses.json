@@ -1,0 +1,7 @@
+{
+  "CounterModule#CookNFT": "0x38D2c9D2425A13Be961ED9eD1C45834B8195FbFB",
+  "CounterModule#CookToken": "0x9381CAdC5F5541cCDDF09434a51Ce77243e9Cdc8",
+  "CounterModule#MockCookTokenV3Aggregator": "0x37B9917907Ed3E4A5018C9Fa1651E7c82279Abf7",
+  "CounterModule#PriceConsumerV3": "0xEE10F9a0812BFa69F35bCa1BEf243c38A820C96c",
+  "CounterModule#CookNFTMarketplace": "0xD5199e4833B3E6DB0e75A3B63A7d1D19fE59500F"
+}

@@ -6,6 +6,8 @@ import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./pricefeed/PriceConsumerV3.sol";
 
 /**
@@ -23,11 +25,11 @@ interface IERC2981 is IERC165 {
 }
 
 /**
- * @title CookNFTMarketplace
+ * @title CookNFTMarketplaceTransparentV1
  * @dev 完整的NFT交易市场合约，支持上架、购买、版税和拍卖功能
  * @notice 使用ReentrancyGuard防止重入攻击
  */
-contract CookNFTMarketplace is ReentrancyGuard {
+contract CookNFTMarketplaceTransparentV1 is ReentrancyGuard,Initializable, OwnableUpgradeable {
     using Math for uint256;
 
     PriceConsumerV3 public priceConsumer;
@@ -147,14 +149,24 @@ contract CookNFTMarketplace is ReentrancyGuard {
         address erc20Token,
         uint256 finalPrice
     );
+    
 
-    constructor(address _feeRecipient, address _priceConsumer) {
+    constructor() {
+        _disableInitializers();
+    }
+
+    /**
+     * @dev 初始化函数，代替构造函数
+     * @param _feeRecipient 手续费接收地址
+     * @param _priceConsumer 手续费接收地址
+     */
+    function initialize(address _feeRecipient, address _priceConsumer) public initializer {
         require(_feeRecipient != address(0), "Invalid fee recipient");
         require(_priceConsumer != address(0), "Invalid priceConsumer");
         feeRecipient = _feeRecipient;
         priceConsumer = PriceConsumerV3(_priceConsumer);
     }
-
+    
     /**
      * @dev 上架NFT
      * @param nftContract NFT合约地址

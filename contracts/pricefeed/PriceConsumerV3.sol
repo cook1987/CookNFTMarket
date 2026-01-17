@@ -6,26 +6,45 @@ import "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.so
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract PriceConsumerV3 is Ownable {
-    mapping(string => AggregatorV3Interface) internal priceFeedMap;
+    mapping(address => AggregatorV3Interface) internal priceFeedMap;
 
     constructor() Ownable(msg.sender){
     }
 
-    function setPriceFeed(string memory tokenSymbol, address priceFeed) external onlyOwner {
-        priceFeedMap[tokenSymbol] = AggregatorV3Interface(priceFeed);
+    function setPriceFeed(address tokenAddress, address priceFeed) external onlyOwner {
+        require(priceFeed != address(0), "Invalid priceFeed address.");
+        require(isContract(priceFeed), "Not a contract.");
+        AggregatorV3Interface v3Interface = AggregatorV3Interface(priceFeed);
+         (
+            , 
+            int price,
+            ,
+            ,
+        ) = v3Interface.latestRoundData();
+        require(price > 0, "Invalid priceFeed.");
+        priceFeedMap[tokenAddress] = v3Interface;
     }
 
     /**
      * Returns the latest price
      */
-    function getLatestPrice(string memory tokenSymbol) public view returns (int) {
+    function getLatestPrice(address tokenAddress) public view returns (int) {
+        AggregatorV3Interface v3Interface = priceFeedMap[tokenAddress];
+        require(address(v3Interface) != address(0), "Current token hasn't a priceFeed.");
         (
-            uint80 roundID, 
+            , 
             int price,
-            uint startedAt,
-            uint timeStamp,
-            uint80 answeredInRound
-        ) = priceFeedMap[tokenSymbol].latestRoundData();
+            ,
+            ,
+        ) = v3Interface.latestRoundData();
         return price;
+    }
+
+    function isContract(address addr) internal view returns (bool) {
+        uint256 size;
+        assembly {
+            size := extcodesize(addr)
+        }
+        return size > 0;
     }
 }

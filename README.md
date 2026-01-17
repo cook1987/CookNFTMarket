@@ -12,6 +12,27 @@
 -ignition   # 使用 ignition 部署脚本  
 -test   # 测试脚本  
 
+## 测试覆盖率
+Report                                   |        |             |                                                                               |                                                                        |
+| ------------------------------------------------- | ------ | ----------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| File Path                                         | Line % | Statement % | Uncovered Lines                                                               | Partially Covered Lines                                                |
+| contracts\pricefeed\MockCookTokenV3Aggregator.sol | 61.54  | 71.43       | 44-50, 75, 79, 83                                                             | -                                                                      |
+| contracts\pricefeed\PriceConsumerV3.sol           | 100.00 | 100.00      | -                                                                             | -                                                                      |
+| contracts\token\CookToken.sol                     | 100.00 | 100.00      | -                                                                             | -                                                                      |
+| contracts\CookNFTMarketplace.sol                  | 95.14  | 91.75       | 633-640, 665-675                                                              | 283-285, 321-324, 540-542, 566-569, 605-610                            |
+| contracts\CookNFTMarketplaceTransparentV1.sol     | 0.00   | 0.00        | 155, 164-167, 182-215, 223-230, 239-247, 258-355, 359-364, 380-420, 431-482,… | 263-351, 439-443, 445-457, 462-468, 473-481, 492-508, 524-599, 617-626 |
+| contracts\ntf\CookNFT.sol                         | 100.00 | 100.00      | -                                                                             | -                                                                      |
+| ------------------------------------------------- | ------ | ----------- | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Total                                             | 51.27  | 50.46       |                                                                               |                                                                        |
+
+## sepolia 合约地址
+
+CounterModule#CookNFT - 0x38D2c9D2425A13Be961ED9eD1C45834B8195FbFB
+CounterModule#CookToken - 0x9381CAdC5F5541cCDDF09434a51Ce77243e9Cdc8
+CounterModule#MockCookTokenV3Aggregator - 0x37B9917907Ed3E4A5018C9Fa1651E7c82279Abf7
+CounterModule#PriceConsumerV3 - 0xEE10F9a0812BFa69F35bCa1BEf243c38A820C96c
+CounterModule#CookNFTMarketplace - 0xD5199e4833B3E6DB0e75A3B63A7d1D19fE59500F
+
 ## 手动测试方法
 第一步：使用账号：0x5B38Da6a701c568545dCfcB03FcB875f56beddC4，部署合约 CookToken，参数：1000，返回合约地址：  0xf2B1114C644cBb3fF63Bf1dD284c8Cd716e95BE9  
 

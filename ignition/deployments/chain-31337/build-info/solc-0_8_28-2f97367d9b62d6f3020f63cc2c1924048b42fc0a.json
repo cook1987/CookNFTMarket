@@ -1,0 +1,44 @@
+{
+  "_format": "hh3-sol-build-info-1",
+  "id": "solc-0_8_28-2f97367d9b62d6f3020f63cc2c1924048b42fc0a",
+  "solcVersion": "0.8.28",
+  "solcLongVersion": "0.8.28+commit.7893614a",
+  "userSourceNameMap": {
+    "contracts/pricefeed/MockCookTokenV3Aggregator.sol": "project/contracts/pricefeed/MockCookTokenV3Aggregator.sol"
+  },
+  "input": {
+    "language": "Solidity",
+    "settings": {
+      "evmVersion": "cancun",
+      "optimizer": {
+        "enabled": true,
+        "runs": 200
+      },
+      "outputSelection": {
+        "*": {
+          "": [
+            "ast"
+          ],
+          "*": [
+            "abi",
+            "evm.bytecode",
+            "evm.deployedBytecode",
+            "evm.methodIdentifiers",
+            "metadata"
+          ]
+        }
+      },
+      "remappings": [
+        "project/:@chainlink/contracts/=npm/@chainlink/contracts@1.5.0/"
+      ]
+    },
+    "sources": {
+      "npm/@chainlink/contracts@1.5.0/src/v0.8/shared/interfaces/AggregatorV3Interface.sol": {
+        "content": "// SPDX-License-Identifier: MIT\npragma solidity ^0.8.0;\n\n// solhint-disable-next-line interface-starts-with-i\ninterface AggregatorV3Interface {\n  function decimals() external view returns (uint8);\n\n  function description() external view returns (string memory);\n\n  function version() external view returns (uint256);\n\n  function getRoundData(\n    uint80 _roundId\n  ) external view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\n\n  function latestRoundData()\n    external\n    view\n    returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound);\n}\n"
+      },
+      "project/contracts/pricefeed/MockCookTokenV3Aggregator.sol": {
+        "content": "// SPDX-License-Identifier: MIT\r\npragma solidity ^0.8.28;\r\n\r\nimport \"@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol\";\r\n\r\ncontract MockCookTokenV3Aggregator is AggregatorV3Interface{\r\n\r\n    uint8 public decimalsVar; \r\n    int256 public latestAnswer; \r\n    uint256 public latestTimestamp; \r\n    uint256 public latestRound; \r\n    mapping(uint256 => int256) public getAnswer; \r\n    mapping(uint256 => uint256) public getTimestamp; \r\n    mapping(uint256 => uint256) private getStartedAt; \r\n    string private descriptionVar;\r\n\r\n    constructor(uint8 _decimals, string memory _description, int256 _initialAnswer) {\r\n        decimalsVar = _decimals;\r\n        descriptionVar = _description;\r\n        updateAnswer(_initialAnswer);\r\n    }\r\n\r\n    function updateAnswer(int256 _answer) public {\r\n        latestAnswer = _answer;\r\n        latestTimestamp = block.timestamp;\r\n        latestRound++;\r\n        getAnswer[latestRound] = _answer;\r\n        getTimestamp[latestRound] = block.timestamp;\r\n        getStartedAt[latestRound] = block.timestamp;\r\n    }\r\n\r\n    function getRoundData(uint80 _roundId)\r\n        external\r\n        view\r\n        override\r\n        returns (\r\n            uint80 roundId,\r\n            int256 answer,\r\n            uint256 startedAt,\r\n            uint256 updatedAt,\r\n            uint80 answeredInRound\r\n        )\r\n    {\r\n        return (\r\n            _roundId,\r\n            getAnswer[_roundId],\r\n            getStartedAt[_roundId],\r\n            getTimestamp[_roundId],\r\n            _roundId\r\n        );\r\n    }\r\n\r\n    function latestRoundData()\r\n        external\r\n        view\r\n        override\r\n        returns (\r\n            uint80 roundId,\r\n            int256 answer,\r\n            uint256 startedAt,\r\n            uint256 updatedAt,\r\n            uint80 answeredInRound\r\n        )\r\n    {\r\n        return (\r\n            uint80(latestRound),\r\n            latestAnswer,\r\n            getStartedAt[latestRound],\r\n            latestTimestamp,\r\n            uint80(latestRound)\r\n        );\r\n    }\r\n\r\n    function decimals() external view override returns (uint8) {\r\n        return decimalsVar;\r\n    }\r\n\r\n    function description() external view override returns (string memory) {\r\n        return descriptionVar;\r\n    }\r\n\r\n    function version() external pure override returns (uint256) {\r\n        return 4;\r\n    }\r\n\r\n\r\n}"
+      }
+    }
+  }
+}
